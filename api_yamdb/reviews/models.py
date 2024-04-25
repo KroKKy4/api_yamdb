@@ -1,3 +1,4 @@
+from random import choices
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -6,6 +7,16 @@ from .consts import (
     MAX_ROLE_LENGTH, NAME_MAX_LENGTH, SLUG_MAX_LENGTH, USERNAME_MAX_LENGTH
 )
 from .validators import REGEX_LETTERS, REGEX_ME, REGEX_SLUG, YEAR_VALIDATOR
+
+USER = 'user'
+MODERATOR = 'moderator'
+ADMIN = 'admin'
+
+POSSIBLE_ROLE = [
+    (USER, USER),
+    (MODERATOR, MODERATOR),
+    (ADMIN, ADMIN),
+]
 
 
 class User(AbstractUser):
@@ -20,6 +31,7 @@ class User(AbstractUser):
     role = models.CharField(
         'Роль', blank=True,
         default='user', max_length=MAX_ROLE_LENGTH,
+        choices=POSSIBLE_ROLE,
     )
     bio = models.TextField(
         'Биография', blank=True,
@@ -32,6 +44,22 @@ class User(AbstractUser):
         'Фамилия пользователя', max_length=USERNAME_MAX_LENGTH,
         blank=True,
     )
+
+    @property
+    def is_admin(self):
+        return self.role == ADMIN or self.is_staff or self.is_superuser
+
+    @property
+    def is_moderator(self):
+        return self.role == MODERATOR
+
+    class Meta:
+        ordering = ('id',)
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+
+    def __str__(self):
+        return self.username
 
 
 class Genre(models.Model):
@@ -47,6 +75,9 @@ class Genre(models.Model):
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
 
+    def __str__(self):
+        return self.name
+
 
 class Category(models.Model):
     name = models.CharField('Название', max_length=NAME_MAX_LENGTH)
@@ -60,6 +91,9 @@ class Category(models.Model):
     class Meta:
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
+
+    def __str__(self):
+        return self.name
 
 
 class Title(models.Model):
