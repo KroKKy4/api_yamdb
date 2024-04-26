@@ -1,29 +1,53 @@
 from django.contrib.auth.tokens import default_token_generator
-from rest_framework import status, viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
+from .filters import TitleFilter
 from .permissions import AdminOnly, AuthorAdminModeratorOrReadOnly
-from .serializers import (CategorySerializer, GenreSerializer,
-                          GetTokenSerializer, TitleSerializer)
+from .serializers import (
+    CategorySerializer, GenreSerializer, GetTokenSerializer,
+    TitleSerializer, TitleReadSerializer
+)
 
 
-class GenreViewSet(viewsets.ModelViewSet):
-    queryset = Genre.objects.all()
-    serializer_class = GenreSerializer
+class CreateDestroyListViewSet(
+    viewsets.GenericViewSet, mixins.CreateModelMixin,
+    mixins.DestroyModelMixin, mixins.ListModelMixin,
+):
+    """
+    Базовый ViewSet класс для создания объекта,
+    возвращения списка объектов, удаления объектов.
+    """
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+    lookup_field = 'slug'
 
 
-class CategoryViewSet(viewsets.ModelViewSet):
+class CategoryViewSet(CreateDestroyListViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+
+
+class GenreViewSet(CreateDestroyListViewSet):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
 
 
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = TitleFilter
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return TitleReadSerializer
+        return TitleSerializer
 
 
 class AuthViewSet(viewsets.GenericViewSet):
