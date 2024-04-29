@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 
@@ -103,5 +104,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = ((BASE_DIR / 'static/'),)
+
+CSV_FILES_DIR = os.path.join(BASE_DIR, 'static/data')
 
 AUTH_USER_MODEL = 'reviews.User'
