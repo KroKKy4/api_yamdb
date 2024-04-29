@@ -8,7 +8,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
 from .filters import TitleFilter
-from .permissions import AdminOnly, AuthorAdminModeratorOrReadOnly
+from .permissions import (
+    AdminOnly, AdminOrReadOnly, AuthorAdminModeratorOrReadOnly
+)
 from .serializers import (
     CategorySerializer, GenreSerializer, GetTokenSerializer,
     TitleSerializer, TitleReadSerializer
@@ -23,6 +25,8 @@ class CreateDestroyListViewSet(
     Базовый ViewSet класс для создания объекта,
     возвращения списка объектов, удаления объектов.
     """
+
+    permission_classes = (AdminOrReadOnly,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
     lookup_field = 'slug'
@@ -40,7 +44,7 @@ class GenreViewSet(CreateDestroyListViewSet):
 
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
-    serializer_class = TitleSerializer
+    permission_classes = (AdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitleFilter
 
