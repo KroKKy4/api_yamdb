@@ -132,6 +132,7 @@ class AuthViewSet(viewsets.GenericViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = (AuthorAdminModeratorOrReadOnly,)
+    http_method_names = ['get', 'post', 'delete', 'patch']
 
     def get_queryset(self):
         title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
