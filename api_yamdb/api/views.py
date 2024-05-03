@@ -49,6 +49,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     permission_classes = (AdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitleFilter
+    http_method_names = ['get', 'post', 'delete', 'patch']
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
@@ -146,6 +147,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = (AuthorAdminModeratorOrReadOnly,)
+    http_method_names = ['get', 'post', 'delete', 'patch']
 
     def get_queryset(self):
         review = get_object_or_404(

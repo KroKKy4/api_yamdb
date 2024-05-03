@@ -2,6 +2,7 @@ from django.db.models import Avg
 from rest_framework import serializers
 from reviews.models import Category, Comment, Genre, Review, Title, User
 from reviews.validators import REGEX_LETTERS, REGEX_ME
+from django.shortcuts import get_object_or_404
 
 
 class NotAdminSerializer(serializers.ModelSerializer):
@@ -52,17 +53,26 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = ('id', 'text', 'author', 'score', 'pub_date')
+    
+    def validate(self, data):
+        if self.context['request'].method == 'PATCH':
+            return data
+        title = self.context['view'].kwargs['title_id']
+        author = self.context['request'].user
+        if Review.objects.filter(author=author, title__id=title).exists():
+            raise serializers.ValidationError(
+                'Нельзя повторно комментировать произведение!')
+        return data
 
 
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         read_only=True,
-        slug_field='username',
-        default=serializers.CurrentUserDefault())
+        slug_field='username',)
 
     class Meta:
         model = Comment
-        fields = '__all__'
+        exclude = ('review',)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -95,7 +105,7 @@ class TitleReadSerializer(serializers.ModelSerializer):
         rating = reviews.aggregate(Avg('score'))['score__avg']
         if rating:
             return rating
-        return 0
+        return None
 
 
 class TitleSerializer(serializers.ModelSerializer):

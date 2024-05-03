@@ -2,6 +2,7 @@ from random import choices
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
+from .validators import validate_username
 
 from .consts import (
     MAX_ROLE_LENGTH, NAME_MAX_LENGTH, SLUG_MAX_LENGTH, USERNAME_MAX_LENGTH
@@ -23,7 +24,7 @@ class User(AbstractUser):
     username = models.CharField(
         'Никнейм', unique=True,
         max_length=USERNAME_MAX_LENGTH,
-        validators=(REGEX_LETTERS, REGEX_ME),
+        validators=(REGEX_LETTERS, REGEX_ME, validate_username),
     )
     email = models.EmailField(
         'email', unique=True
@@ -72,6 +73,7 @@ class Genre(models.Model):
     )
 
     class Meta:
+        ordering = ('name',)
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
 
@@ -89,6 +91,7 @@ class Category(models.Model):
     )
 
     class Meta:
+        ordering = ('name',)
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
@@ -117,6 +120,7 @@ class Title(models.Model):
     )
 
     class Meta:
+        ordering = ('year', 'name',)
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
 
@@ -139,7 +143,7 @@ class Review(models.Model):
     )
     score = models.PositiveSmallIntegerField(
         verbose_name='Оценка',
-        validators=[MinValueValidator(0), MaxValueValidator(10)]
+        validators=[MinValueValidator(1), MaxValueValidator(10)]
     )
     pub_date = models.DateTimeField(
         auto_now_add=True,
@@ -149,6 +153,13 @@ class Review(models.Model):
 
     class Meta:
         ordering = ('pub_date',)
+        constraints = [
+            models.UniqueConstraint(
+                fields=['title', 'author'],
+                name='title_author_unique'
+            ),
+        ]
+
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
 
@@ -167,5 +178,6 @@ class Comment(models.Model):
     )
 
     class Meta:
+        ordering = ('pub_date',)
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'

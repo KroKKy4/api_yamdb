@@ -1,5 +1,5 @@
 from datetime import datetime
-
+from django.core.exceptions import ValidationError
 from django.core.validators import (
     MaxValueValidator, MinValueValidator, RegexValidator
 )
@@ -16,3 +16,11 @@ YEAR_VALIDATOR = (
         datetime.now().year, 'Год выпуска не может быть больше текущего.'
     ),
 )
+
+
+def validate_username(value):
+    if value.lower() == 'me':
+        raise ValidationError(
+            ('Имя пользователя не может быть <me>.'),
+            params={'value': value},
+        )
