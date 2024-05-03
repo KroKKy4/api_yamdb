@@ -14,11 +14,11 @@ class AuthorAdminModeratorOrReadOnly(permissions.BasePermission):
         return (request.method in permissions.SAFE_METHODS
                 or request.user.is_authenticated)
 
-    def has_object_permission(self, request, view):
+    def has_object_permission(self, request, view, obj):
         return (request.method in permissions.SAFE_METHODS
                 or request.user.is_moderator
                 or request.user.is_admin
-                or request.user == request.user)
+                or request.user == obj.author)
 
 
 class AdminOrReadOnly(permissions.BasePermission):
