@@ -6,7 +6,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from reviews.models import Category, Comment, Genre, Review, Title, User
+from reviews.models import Category, Genre, Review, Title, User
 
 from .filters import TitleFilter
 from .permissions import (AdminOnly, AdminOrReadOnly,
@@ -23,9 +23,9 @@ class CreateDestroyListViewSet(
     viewsets.GenericViewSet, mixins.CreateModelMixin,
     mixins.DestroyModelMixin, mixins.ListModelMixin,
 ):
-    """
-    Базовый ViewSet класс для создания объекта,
-    возвращения списка объектов, удаления объектов.
+    """Базовый ViewSet класс.
+
+    Создает объект, возвращает список объектов, удаляет объект.
     """
 
     permission_classes = (AdminOrReadOnly,)
@@ -35,16 +35,22 @@ class CreateDestroyListViewSet(
 
 
 class CategoryViewSet(CreateDestroyListViewSet):
+    """Вьюсет для модели Категории."""
+
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
 
 class GenreViewSet(CreateDestroyListViewSet):
+    """Вьюсет для модели Жанра."""
+
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
 
 
 class TitleViewSet(viewsets.ModelViewSet):
+    """Вьюсет для модели Произведения."""
+
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
     permission_classes = (AdminOrReadOnly,)
@@ -57,14 +63,10 @@ class TitleViewSet(viewsets.ModelViewSet):
             return TitleReadSerializer
         return TitleSerializer
 
-    # def perform_create(self, serializer):
-    #     if 'genre' in serializer.validated_data and not serializer.validated_data['genre']:
-    #         return Response({'genre': 'This field is required.'}, status=status.HTTP_400_BAD_REQUEST)
-    #     serializer.save()
-
 
 class UsersViewSet(viewsets.ModelViewSet):
     """Вьюсет для модели Пользователя."""
+
     queryset = User.objects.all()
     serializer_class = UsersSerializer
     permission_classes = (AdminOnly,)
@@ -137,6 +139,8 @@ class AuthViewSet(viewsets.GenericViewSet):
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
+    """Вьюсет для модели Отзыва."""
+
     serializer_class = ReviewSerializer
     permission_classes = (AuthorAdminModeratorOrReadOnly,)
     http_method_names = ['get', 'post', 'delete', 'patch']
@@ -151,6 +155,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 
 class CommentViewSet(viewsets.ModelViewSet):
+    """Вьюсет для модели Комментария."""
+
     serializer_class = CommentSerializer
     permission_classes = (AuthorAdminModeratorOrReadOnly,)
     http_method_names = ['get', 'post', 'delete', 'patch']

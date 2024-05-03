@@ -1,5 +1,6 @@
 from django.db.models import Avg
 from rest_framework import serializers
+
 from reviews.models import Category, Comment, Genre, Review, Title, User
 from reviews.validators import REGEX_LETTERS, REGEX_ME
 
@@ -45,6 +46,8 @@ class SignUpSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Review."""
+
     author = serializers.SlugRelatedField(
         slug_field='username',
         read_only=True,)
@@ -65,6 +68,8 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Comment."""
+
     author = serializers.SlugRelatedField(
         read_only=True,
         slug_field='username',)
@@ -75,22 +80,26 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Category."""
+
     class Meta:
         model = Category
         exclude = ('id',)
 
 
 class GenreSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Genre."""
+
     class Meta:
         model = Genre
         exclude = ('id',)
 
 
 class TitleReadSerializer(serializers.ModelSerializer):
-    """Сериализатор для GET-запросов."""
+    """Сериализатор для модели Title при GET-запросах."""
 
     category = CategorySerializer(read_only=True)
-    genre = GenreSerializer(many=True, required=True)
+    genre = GenreSerializer(many=True, read_only=True)
     rating = serializers.SerializerMethodField()
 
     class Meta:
@@ -108,18 +117,26 @@ class TitleReadSerializer(serializers.ModelSerializer):
 
 
 class TitleSerializer(serializers.ModelSerializer):
-    """Сериализатор для небезопасных запросов."""
+    """Сериализатор для модели Title небезопасных запросах."""
 
     category = serializers.SlugRelatedField(
         slug_field='slug', queryset=Category.objects.all()
     )
     genre = serializers.SlugRelatedField(
-        slug_field='slug', queryset=Genre.objects.all(), many=True, required=True
+        slug_field='slug', queryset=Genre.objects.all(), many=True
     )
 
     class Meta:
         model = Title
         fields = ('name', 'year', 'description', 'genre', 'category')
+
+    def validate_genre(self, value):
+        """Проверяет, что значение поля genre не None."""
+        if not value:
+            raise serializers.ValidationError(
+                'This field is required.'
+            )
+        return value
 
     def to_representation(self, instance):
         """Сериализация ответа на POST-запрос."""
