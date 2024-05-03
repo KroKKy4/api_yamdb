@@ -53,16 +53,25 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = ('id', 'text', 'author', 'score', 'pub_date')
 
+    def validate(self, data):
+        if self.context['request'].method == 'PATCH':
+            return data
+        title = self.context['view'].kwargs['title_id']
+        author = self.context['request'].user
+        if Review.objects.filter(author=author, title__id=title).exists():
+            raise serializers.ValidationError(
+                'Нельзя повторно комментировать произведение!')
+        return data
+
 
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         read_only=True,
-        slug_field='username',
-        default=serializers.CurrentUserDefault())
+        slug_field='username',)
 
     class Meta:
         model = Comment
-        fields = '__all__'
+        exclude = ('review',)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -80,8 +89,8 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitleReadSerializer(serializers.ModelSerializer):
     """Сериализатор для GET-запросов."""
 
-    category = CategorySerializer()
-    genre = GenreSerializer(many=True)
+    category = CategorySerializer(read_only=True)
+    genre = GenreSerializer(many=True, required=True)
     rating = serializers.SerializerMethodField()
 
     class Meta:
@@ -95,7 +104,7 @@ class TitleReadSerializer(serializers.ModelSerializer):
         rating = reviews.aggregate(Avg('score'))['score__avg']
         if rating:
             return rating
-        return 0
+        return None
 
 
 class TitleSerializer(serializers.ModelSerializer):
@@ -105,7 +114,7 @@ class TitleSerializer(serializers.ModelSerializer):
         slug_field='slug', queryset=Category.objects.all()
     )
     genre = serializers.SlugRelatedField(
-        slug_field='slug', queryset=Genre.objects.all(), many=True
+        slug_field='slug', queryset=Genre.objects.all(), many=True, required=True
     )
 
     class Meta:

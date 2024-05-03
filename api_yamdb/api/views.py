@@ -46,14 +46,21 @@ class GenreViewSet(CreateDestroyListViewSet):
 
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
+    serializer_class = TitleSerializer
     permission_classes = (AdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitleFilter
+    http_method_names = ['get', 'post', 'delete', 'patch']
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return TitleReadSerializer
         return TitleSerializer
+
+    # def perform_create(self, serializer):
+    #     if 'genre' in serializer.validated_data and not serializer.validated_data['genre']:
+    #         return Response({'genre': 'This field is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    #     serializer.save()
 
 
 class UsersViewSet(viewsets.ModelViewSet):
@@ -146,6 +153,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = (AuthorAdminModeratorOrReadOnly,)
+    http_method_names = ['get', 'post', 'delete', 'patch']
 
     def get_queryset(self):
         review = get_object_or_404(
