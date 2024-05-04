@@ -57,11 +57,6 @@ class TitleViewSet(viewsets.ModelViewSet):
             return TitleReadSerializer
         return TitleSerializer
 
-    # def perform_create(self, serializer):
-    #     if 'genre' in serializer.validated_data and not serializer.validated_data['genre']:
-    #         return Response({'genre': 'This field is required.'}, status=status.HTTP_400_BAD_REQUEST)
-    #     serializer.save()
-
 
 class UsersViewSet(viewsets.ModelViewSet):
     """Вьюсет для модели Пользователя."""
