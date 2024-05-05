@@ -1,12 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
-from .validators import validate_username
+from .validators import validate_username, year_validator
 
 from .consts import (
     MAX_ROLE_LENGTH, NAME_MAX_LENGTH, SLUG_MAX_LENGTH, USERNAME_MAX_LENGTH
 )
-from .validators import REGEX_LETTERS, REGEX_ME, REGEX_SLUG, YEAR_VALIDATOR
+from .validators import REGEX_LETTERS, REGEX_ME, REGEX_SLUG
 
 USER = 'user'
 MODERATOR = 'moderator'
@@ -45,14 +45,6 @@ class User(AbstractUser):
         blank=True,
     )
 
-    @property
-    def is_admin(self):
-        return self.role == ADMIN or self.is_staff or self.is_superuser
-
-    @property
-    def is_moderator(self):
-        return self.role == MODERATOR
-
     class Meta:
         ordering = ('id',)
         verbose_name = 'Пользователь'
@@ -60,6 +52,14 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+
+    @property
+    def is_admin(self):
+        return self.role == ADMIN or self.is_staff or self.is_superuser
+
+    @property
+    def is_moderator(self):
+        return self.role == MODERATOR
 
 
 class Genre(models.Model):
@@ -100,9 +100,9 @@ class Category(models.Model):
 
 class Title(models.Model):
     name = models.CharField('Название', max_length=NAME_MAX_LENGTH)
-    year = models.IntegerField(
+    year = models.SmallIntegerField(
         'Год выпуска',
-        validators=YEAR_VALIDATOR
+        validators=[year_validator]
     )
     description = models.TextField('Описание', blank=True)
     genre = models.ManyToManyField(
@@ -142,7 +142,8 @@ class Review(models.Model):
     )
     score = models.PositiveSmallIntegerField(
         verbose_name='Оценка',
-        validators=[MinValueValidator(1), MaxValueValidator(10)]
+        validators=[MinValueValidator(1, message='Оценка меньше 1.'),
+                    MaxValueValidator(10, message='Оценка больше 10.')]
     )
     pub_date = models.DateTimeField(
         auto_now_add=True,
