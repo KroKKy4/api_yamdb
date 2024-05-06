@@ -1,4 +1,3 @@
-from django.db.models import Avg
 from rest_framework import serializers
 
 from reviews.models import Category, Comment, Genre, Review, Title, User
@@ -22,6 +21,18 @@ class UsersSerializer(serializers.ModelSerializer):
             'username', 'email', 'first_name',
             'last_name', 'bio', 'role'
         )
+
+    def create(self, validated_data):
+        user, created = User.objects.get_or_create(
+            username=validated_data.get('username'),
+            email=validated_data.get('email'),
+            defaults=validated_data
+        )
+        if not created:
+            for attr, value in validated_data.items():
+                setattr(user, attr, value)
+            user.save()
+        return user
 
 
 class GetTokenSerializer(serializers.Serializer):
@@ -98,22 +109,16 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitleReadSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Title при GET-запросах."""
 
-    category = CategorySerializer(read_only=True)
-    genre = GenreSerializer(many=True, read_only=True)
-    rating = serializers.SerializerMethodField()
+    genre = GenreSerializer(many=True)
+    category = CategorySerializer()
+    rating = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Title
         fields = (
-            'id', 'name', 'year', 'rating', 'description', 'genre', 'category'
+            'id', 'name', 'year', 'description',
+            'category', 'genre', 'rating',
         )
-
-    def get_rating(self, obj):
-        reviews = Review.objects.filter(title=obj)
-        rating = reviews.aggregate(Avg('score'))['score__avg']
-        if rating:
-            return rating
-        return None
 
 
 class TitleSerializer(serializers.ModelSerializer):

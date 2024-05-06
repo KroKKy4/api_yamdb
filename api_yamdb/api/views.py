@@ -1,3 +1,4 @@
+from django.db.models import Avg
 from django.contrib.auth.tokens import default_token_generator
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, status, viewsets
@@ -51,7 +52,7 @@ class GenreViewSet(CreateDestroyListViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     """Вьюсет для модели Произведения."""
 
-    queryset = Title.objects.all()
+    queryset = Title.objects.annotate(rating=Avg('reviews__score')).all()
     serializer_class = TitleSerializer
     permission_classes = (AdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
@@ -121,20 +122,11 @@ class AuthViewSet(viewsets.GenericViewSet):
         permission_classes=(AllowAny,),
         url_path='signup')
     def signup(self, request):
-        user = User.objects.filter(
-            username=request.data.get('username'),
-            email=request.data.get('email')
-        )
-        if not user:
-            serializer = SignUpSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            user = serializer.save()
-            confirmation_code = default_token_generator.make_token(user)
-            send_code(user, confirmation_code)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        serializer = SignUpSerializer(user[0])
-        confirmation_code = default_token_generator.make_token(user[0])
-        send_code(user[0], confirmation_code)
+        serializer = SignUpSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        confirmation_code = default_token_generator.make_token(user)
+        send_code(user, confirmation_code)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
