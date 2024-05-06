@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from django.core.exceptions import ValidationError
 from django.core.validators import (RegexValidator)
 
@@ -21,4 +22,5 @@ def validate_username(value):
 def year_validator(value):
     if value > datetime.now().year:
         raise ValidationError(
-            'Значение не может быть больше текущего.')
+            'Значение не может быть больше текущего.'
+        )

@@ -1,5 +1,6 @@
 from django.db.models import Avg
 from rest_framework import serializers
+
 from reviews.models import Category, Comment, Genre, Review, Title, User
 from reviews.validators import REGEX_LETTERS, REGEX_ME
 
@@ -116,26 +117,19 @@ class TitleReadSerializer(serializers.ModelSerializer):
 
 
 class TitleSerializer(serializers.ModelSerializer):
-    """Сериализатор для модели Title небезопасных запросах."""
+    """Сериализатор для модели Title при POST, PATCH, DELETE запросах."""
 
     category = serializers.SlugRelatedField(
         slug_field='slug', queryset=Category.objects.all()
     )
     genre = serializers.SlugRelatedField(
-        slug_field='slug', queryset=Genre.objects.all(), many=True
+        slug_field='slug', queryset=Genre.objects.all(),
+        many=True, allow_null=False, allow_empty=False
     )
 
     class Meta:
         model = Title
         fields = ('name', 'year', 'description', 'genre', 'category')
-
-    def validate_genre(self, value):
-        """Проверяет, что значение поля genre не None."""
-        if not value:
-            raise serializers.ValidationError(
-                'This field is required.'
-            )
-        return value
 
     def to_representation(self, instance):
         """Сериализация ответа на POST-запрос."""

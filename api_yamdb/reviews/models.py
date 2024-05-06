@@ -1,12 +1,14 @@
-from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import MinValueValidator, MaxValueValidator
-from .validators import validate_username, year_validator
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
+
 
 from .consts import (
     MAX_ROLE_LENGTH, NAME_MAX_LENGTH, SLUG_MAX_LENGTH, USERNAME_MAX_LENGTH
 )
-from .validators import REGEX_LETTERS, REGEX_ME, REGEX_SLUG
+from .validators import (
+    REGEX_LETTERS, REGEX_ME, REGEX_SLUG, validate_username, year_validator
+)
 
 USER = 'user'
 MODERATOR = 'moderator'
@@ -100,7 +102,7 @@ class Category(models.Model):
 
 class Title(models.Model):
     name = models.CharField('Название', max_length=NAME_MAX_LENGTH)
-    year = models.SmallIntegerField(
+    year = models.PositiveSmallIntegerField(
         'Год выпуска',
         validators=[year_validator]
     )
