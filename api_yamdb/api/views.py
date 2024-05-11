@@ -1,4 +1,3 @@
-from django.db.models import Avg
 from django.contrib.auth.tokens import default_token_generator
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, status, viewsets
@@ -52,7 +51,7 @@ class GenreViewSet(CreateDestroyListViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     """Вьюсет для модели Произведения."""
 
-    queryset = Title.objects.annotate(rating=Avg('reviews__score')).all()
+    queryset = Title.objects.all()
     serializer_class = TitleSerializer
     permission_classes = (AdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)

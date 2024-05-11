@@ -1,7 +1,9 @@
+from django.db.models import Avg
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
 from reviews.models import Category, Comment, Genre, Review, Title, User
-from reviews.validators import REGEX_LETTERS, REGEX_ME
+from reviews.validators import REGEX_LETTERS, REGEX_ME, validate_username
 
 
 class NotAdminSerializer(serializers.ModelSerializer):
@@ -22,18 +24,6 @@ class UsersSerializer(serializers.ModelSerializer):
             'last_name', 'bio', 'role'
         )
 
-    def create(self, validated_data):
-        user, created = User.objects.get_or_create(
-            username=validated_data.get('username'),
-            email=validated_data.get('email'),
-            defaults=validated_data
-        )
-        if not created:
-            for attr, value in validated_data.items():
-                setattr(user, attr, value)
-            user.save()
-        return user
-
 
 class GetTokenSerializer(serializers.Serializer):
     username = serializers.CharField(
@@ -51,9 +41,54 @@ class GetTokenSerializer(serializers.Serializer):
 
 
 class SignUpSerializer(serializers.ModelSerializer):
+    # прописываю отдельно поля сериализатора,
+    # чтобы отменить действие UniqueValidator, который прописан в модели
+    username = serializers.CharField(
+        validators=[REGEX_LETTERS, REGEX_ME, validate_username],
+        max_length=150
+    )
+    email = serializers.EmailField(validators=[], max_length=254)
+
+    def validate(self, attrs):
+        """Провожу проверку: username и email должны быть уникальными.
+
+        Исключение, если пара username и email уже есть в бд.
+        """
+        username = attrs['username']
+        email = attrs['email']
+
+        user_username = User.objects.filter(username=username)
+        user_email = User.objects.filter(email=email)
+
+        if not user_username and not user_email:
+            return attrs
+
+        if not user_username and user_email:
+            raise serializers.ValidationError(
+                {'email': 'Этот email уже используется.'}
+            )
+
+        if user_username and not user_email:
+            raise serializers.ValidationError(
+                {'username': 'Этот username уже используется.'}
+            )
+
+        try:
+            User.objects.get(username=username, email=email)
+        except ObjectDoesNotExist:
+            raise serializers.ValidationError(
+                {'username': 'Этот username уже используется.',
+                 'email': 'Этот email уже используется.'},
+            )
+        return attrs
+
     class Meta:
         model = User
-        fields = ('email', 'username')
+        fields = ('username', 'email')
+
+    def create(self, validated_data):
+        user, created = User.objects.get_or_create(**validated_data)
+        return user
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -111,14 +146,21 @@ class TitleReadSerializer(serializers.ModelSerializer):
 
     genre = GenreSerializer(many=True)
     category = CategorySerializer()
-    rating = serializers.IntegerField(read_only=True)
+    rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Title
         fields = (
-            'id', 'name', 'year', 'description',
-            'category', 'genre', 'rating',
+            'id', 'name', 'year', 'rating',
+            'description', 'genre', 'category',
         )
+
+    def get_rating(self, obj):
+        reviews = Review.objects.filter(title=obj)
+        rating = reviews.aggregate(Avg('score'))['score__avg']
+        if rating:
+            return rating
+        return None
 
 
 class TitleSerializer(serializers.ModelSerializer):
@@ -134,7 +176,7 @@ class TitleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = ('name', 'year', 'description', 'genre', 'category')
+        fields = ('name', 'year', 'description', 'genre', 'category',)
 
     def to_representation(self, instance):
         """Сериализация ответа на POST-запрос."""

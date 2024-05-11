@@ -23,12 +23,14 @@ POSSIBLE_ROLE = [
 
 class User(AbstractUser):
     username = models.CharField(
-        'Никнейм', unique=True,
+        'Никнейм',
+        unique=True,
         max_length=USERNAME_MAX_LENGTH,
         validators=(REGEX_LETTERS, REGEX_ME, validate_username),
     )
     email = models.EmailField(
-        'email', unique=True
+        'email',
+        unique=True
     )
     role = models.CharField(
         'Роль', blank=True,
