@@ -41,8 +41,6 @@ class GetTokenSerializer(serializers.Serializer):
 
 
 class SignUpSerializer(serializers.ModelSerializer):
-    # прописываю отдельно поля сериализатора,
-    # чтобы отменить действие UniqueValidator, который прописан в модели
     username = serializers.CharField(
         validators=[REGEX_LETTERS, REGEX_ME, validate_username],
         max_length=150
