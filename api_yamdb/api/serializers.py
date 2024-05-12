@@ -1,7 +1,9 @@
 from django.db.models import Avg
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
+
 from reviews.models import Category, Comment, Genre, Review, Title, User
-from reviews.validators import REGEX_LETTERS, REGEX_ME
+from reviews.validators import REGEX_LETTERS, REGEX_ME, validate_username
 
 
 class NotAdminSerializer(serializers.ModelSerializer):
@@ -39,9 +41,52 @@ class GetTokenSerializer(serializers.Serializer):
 
 
 class SignUpSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(
+        validators=[REGEX_LETTERS, REGEX_ME, validate_username],
+        max_length=150
+    )
+    email = serializers.EmailField(validators=[], max_length=254)
+
+    def validate(self, attrs):
+        """Провожу проверку: username и email должны быть уникальными.
+
+        Исключение, если пара username и email уже есть в бд.
+        """
+        username = attrs['username']
+        email = attrs['email']
+
+        user_username = User.objects.filter(username=username)
+        user_email = User.objects.filter(email=email)
+
+        if not user_username and not user_email:
+            return attrs
+
+        if not user_username and user_email:
+            raise serializers.ValidationError(
+                {'email': 'Этот email уже используется.'}
+            )
+
+        if user_username and not user_email:
+            raise serializers.ValidationError(
+                {'username': 'Этот username уже используется.'}
+            )
+
+        try:
+            User.objects.get(username=username, email=email)
+        except ObjectDoesNotExist:
+            raise serializers.ValidationError(
+                {'username': 'Этот username уже используется.',
+                 'email': 'Этот email уже используется.'},
+            )
+        return attrs
+
     class Meta:
         model = User
-        fields = ('email', 'username')
+        fields = ('username', 'email')
+
+    def create(self, validated_data):
+        user, created = User.objects.get_or_create(**validated_data)
+        return user
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -97,14 +142,15 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitleReadSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Title при GET-запросах."""
 
-    category = CategorySerializer(read_only=True)
-    genre = GenreSerializer(many=True, read_only=True)
+    genre = GenreSerializer(many=True)
+    category = CategorySerializer()
     rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Title
         fields = (
-            'id', 'name', 'year', 'rating', 'description', 'genre', 'category'
+            'id', 'name', 'year', 'rating',
+            'description', 'genre', 'category',
         )
 
     def get_rating(self, obj):
@@ -116,26 +162,19 @@ class TitleReadSerializer(serializers.ModelSerializer):
 
 
 class TitleSerializer(serializers.ModelSerializer):
-    """Сериализатор для модели Title небезопасных запросах."""
+    """Сериализатор для модели Title при POST, PATCH, DELETE запросах."""
 
     category = serializers.SlugRelatedField(
         slug_field='slug', queryset=Category.objects.all()
     )
     genre = serializers.SlugRelatedField(
-        slug_field='slug', queryset=Genre.objects.all(), many=True
+        slug_field='slug', queryset=Genre.objects.all(),
+        many=True, allow_null=False, allow_empty=False
     )
 
     class Meta:
         model = Title
-        fields = ('name', 'year', 'description', 'genre', 'category')
-
-    def validate_genre(self, value):
-        """Проверяет, что значение поля genre не None."""
-        if not value:
-            raise serializers.ValidationError(
-                'This field is required.'
-            )
-        return value
+        fields = ('name', 'year', 'description', 'genre', 'category',)
 
     def to_representation(self, instance):
         """Сериализация ответа на POST-запрос."""

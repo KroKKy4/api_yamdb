@@ -121,20 +121,11 @@ class AuthViewSet(viewsets.GenericViewSet):
         permission_classes=(AllowAny,),
         url_path='signup')
     def signup(self, request):
-        user = User.objects.filter(
-            username=request.data.get('username'),
-            email=request.data.get('email')
-        )
-        if not user:
-            serializer = SignUpSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            user = serializer.save()
-            confirmation_code = default_token_generator.make_token(user)
-            send_code(user, confirmation_code)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        serializer = SignUpSerializer(user[0])
-        confirmation_code = default_token_generator.make_token(user[0])
-        send_code(user[0], confirmation_code)
+        serializer = SignUpSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        confirmation_code = default_token_generator.make_token(user)
+        send_code(user, confirmation_code)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -145,13 +136,14 @@ class ReviewViewSet(viewsets.ModelViewSet):
     permission_classes = (AuthorAdminModeratorOrReadOnly,)
     http_method_names = ['get', 'post', 'delete', 'patch']
 
+    def get_title(self):
+        return get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+
     def get_queryset(self):
-        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
-        return title.reviews.all()
+        return self.get_title().reviews.all()
 
     def perform_create(self, serializer):
-        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
-        serializer.save(author=self.request.user, title=title)
+        serializer.save(author=self.request.user, title=self.get_title())
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -161,16 +153,14 @@ class CommentViewSet(viewsets.ModelViewSet):
     permission_classes = (AuthorAdminModeratorOrReadOnly,)
     http_method_names = ['get', 'post', 'delete', 'patch']
 
-    def get_queryset(self):
-        review = get_object_or_404(
+    def get_review(self):
+        return get_object_or_404(
             Review,
             pk=self.kwargs.get('review_id'),
             title_id=self.kwargs.get('title_id'))
-        return review.comments.all()
+
+    def get_queryset(self):
+        return self.get_review().comments.all()
 
     def perform_create(self, serializer):
-        review = get_object_or_404(
-            Review,
-            pk=self.kwargs.get('review_id'),
-            title_id=self.kwargs.get('title_id'))
-        serializer.save(author=self.request.user, review=review)
+        serializer.save(author=self.request.user, review=self.get_review())
