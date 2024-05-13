@@ -1,4 +1,3 @@
-from django.db.models import Avg
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
@@ -144,7 +143,7 @@ class TitleReadSerializer(serializers.ModelSerializer):
 
     genre = GenreSerializer(many=True)
     category = CategorySerializer()
-    rating = serializers.SerializerMethodField()
+    rating = serializers.IntegerField(read_only=True, default=0)
 
     class Meta:
         model = Title
@@ -152,13 +151,6 @@ class TitleReadSerializer(serializers.ModelSerializer):
             'id', 'name', 'year', 'rating',
             'description', 'genre', 'category',
         )
-
-    def get_rating(self, obj):
-        reviews = Review.objects.filter(title=obj)
-        rating = reviews.aggregate(Avg('score'))['score__avg']
-        if rating:
-            return rating
-        return None
 
 
 class TitleSerializer(serializers.ModelSerializer):
@@ -174,7 +166,10 @@ class TitleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = ('name', 'year', 'description', 'genre', 'category',)
+        fields = (
+            'name', 'year', 'description',
+            'genre', 'category',
+        )
 
     def to_representation(self, instance):
         """Сериализация ответа на POST-запрос."""
